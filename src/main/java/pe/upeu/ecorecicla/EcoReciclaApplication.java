@@ -7,5 +7,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 @SpringBootApplication
 @EnableMethodSecurity
 public class EcoReciclaApplication {
-    public static void main(String[] args) { SpringApplication.run(EcoReciclaApplication.class, args); }
+  public static void main(String[] args) {
+    SpringApplication.run(EcoReciclaApplication.class, args);
+  }
 }
