@@ -56,6 +56,66 @@ class ApiIntegracionTest {
   }
 
   @Test
+  @Order(0)
+  void semillaIncluyePuntosRutasYPesajesMinimos() {
+    String op = token("operario1");
+    var pointsResponse =
+        http.exchange(
+            "/api/v1/puntos?pagina=0&tamanio=100",
+            HttpMethod.GET,
+            new HttpEntity<>(headers(op)),
+            String.class);
+    JsonNode points = body(pointsResponse).get("contenido");
+    assertEquals(12, body(pointsResponse).get("totalElementos").asInt());
+    assertEquals(3, points.findValuesAsText("zona").stream().distinct().count());
+
+    LocalDate hoy = LocalDate.now(java.time.ZoneId.of("America/Lima"));
+    JsonNode rutaHoy =
+        body(
+            http.exchange(
+                "/api/v1/rutas/asignada?fecha=" + hoy,
+                HttpMethod.GET,
+                new HttpEntity<>(headers(op)),
+                String.class));
+    JsonNode rutaAyer =
+        body(
+            http.exchange(
+                "/api/v1/rutas/asignada?fecha=" + hoy.minusDays(1),
+                HttpMethod.GET,
+                new HttpEntity<>(headers(op)),
+                String.class));
+    assertEquals("ABIERTA", rutaHoy.get("estado").asText());
+    assertEquals(6, rutaHoy.get("puntos").size());
+    boolean hayPendientes = false;
+    for (JsonNode punto : rutaHoy.get("puntos")) {
+      hayPendientes |= !punto.get("atendido").asBoolean();
+    }
+    assertTrue(hayPendientes);
+    assertEquals("CERRADA", rutaAyer.get("estado").asText());
+
+    int pesajesTotal = 0;
+    boolean tieneAnulado = false;
+    boolean tieneSegundoOperario = false;
+    for (JsonNode punto : points) {
+      JsonNode pesajes =
+          body(http.exchange(
+                  "/api/v1/puntos/" + punto.get("id").asLong() + "/pesajes?pagina=0&tamanio=100",
+                  HttpMethod.GET,
+                  new HttpEntity<>(headers(op)),
+                  String.class))
+              .get("contenido");
+      pesajesTotal += pesajes.size();
+      for (JsonNode pesaje : pesajes) {
+        tieneAnulado |= pesaje.get("estado").asText().equals("ANULADO");
+        tieneSegundoOperario |= pesaje.get("operario").asText().equals("operario2");
+      }
+    }
+    assertTrue(pesajesTotal >= 15);
+    assertTrue(tieneAnulado);
+    assertTrue(tieneSegundoOperario);
+  }
+
+  @Test
   @Order(1)
   void autenticaYDevuelveIdentidadYPrivilegios() {
     String t = token("operario1");

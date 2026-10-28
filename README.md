@@ -97,6 +97,6 @@ La semilla se ejecuta con `CommandLineRunner` transaccional e idempotente, tras 
 ## Verificación realizada
 
 - `mvn -B -DskipTests package`: compilación Java 21 correcta.
-- `mvn -q test`: 11 pruebas de integración contra H2, todas aprobadas (login correcto/incorrecto, identidad y privilegios, token ausente/alterado/vencido, 403, paginación/filtro, cálculo de neto, 400 por neto cero, RN-02, RN-01, anulación lógica, cierre RN-04 incompleto/completo).
+- `mvnw.cmd -q clean verify`: 12 pruebas de integración contra H2, todas aprobadas (semilla mínima, login correcto/incorrecto, identidad y privilegios, token ausente/alterado/vencido, 403, paginación/filtro, cálculo de neto, 400 por neto cero, RN-02, RN-01, anulación lógica, cierre RN-04 incompleto/completo).
 - Docker Engine no estaba disponible durante esta sesión; no se pudo levantar PostgreSQL/Compose ni validar el arranque de la imagen. Randy puede ejecutar `docker compose up --build` cuando Docker Desktop esté activo.
 
