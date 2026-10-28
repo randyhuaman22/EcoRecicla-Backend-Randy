@@ -1,0 +1,11 @@
+target/
+.env
+.idea/
+.vscode/
+*.iml
+*.log
+*.class
+*.jar
+hs_err_pid*
+.DS_Store
+

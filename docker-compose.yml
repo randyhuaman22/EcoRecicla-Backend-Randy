@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ecorecicla}
+      POSTGRES_USER: ${POSTGRES_USER:-ecorecicla}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ecorecicla_dev}
+      TZ: ${TZ:-America/Lima}
+    ports:
+      - "5432:5432"
+    volumes:
+      - ecorecicla-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ecorecicla} -d ${POSTGRES_DB:-ecorecicla}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build: .
+    environment:
+      DB_URL: ${DB_URL:-jdbc:postgresql://db:5432/ecorecicla}
+      DB_USERNAME: ${DB_USERNAME:-ecorecicla}
+      DB_PASSWORD: ${DB_PASSWORD:-ecorecicla_dev}
+      JWT_SECRET: ${JWT_SECRET:-RWNvUmVjaWNsYURldi1DbGF2ZS1sb2NhbC0yMDI2IQ==}
+      TZ: ${TZ:-America/Lima}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  ecorecicla-postgres:
+
