@@ -1,17 +1,125 @@
 package pe.upeu.ecorecicla.servicio;
+
+import java.time.Instant;
+import java.util.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import pe.upeu.ecorecicla.dominio.*;
 import pe.upeu.ecorecicla.exception.*;
 import pe.upeu.ecorecicla.repositorio.*;
 import pe.upeu.ecorecicla.web.dto.Dtos;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import java.time.Instant;
-import java.util.*;
-@Service public class RutaServicio {
- private final RutaRepositorio rutas;private final RutaPuntoRepositorio rp;private final PesajeRepositorio pesajes;private final PuntoAcopioRepositorio puntos;private final UsuarioRepositorio usuarios;private final AutenticacionServicio auth;private final ConsultaServicio consultas;
- public RutaServicio(RutaRepositorio r,RutaPuntoRepositorio rp,PesajeRepositorio p,PuntoAcopioRepositorio pa,UsuarioRepositorio u,AutenticacionServicio a,ConsultaServicio c){rutas=r;this.rp=rp;pesajes=p;puntos=pa;usuarios=u;auth=a;consultas=c;}
- @Transactional public Dtos.RutaResponse cerrar(long id,String username){Ruta r=rutas.findByIdForUpdate(id).orElseThrow(()->new NoEncontradoException("La ruta no existe."));if("CERRADA".equals(r.getEstado()))throw new ConflictoNegocioException("La ruta ya está cerrada.");Set<Long> atendidos=new HashSet<>(pesajes.puntosPesados(id));List<RutaPunto> plan=rp.findByRutaIdOrderBySecuenciaAsc(id);long faltan=plan.stream().filter(x->!atendidos.contains(x.getPunto().getId())&&(x.getMotivoOmission()==null||x.getMotivoOmission().isBlank())).count();if(faltan>0)throw new ConflictoNegocioException("No se puede cerrar la ruta: faltan "+faltan+" puntos sin pesaje ni motivo de omisión.");r.setEstado("CERRADA");r.setCerradaPor(auth.usuario(username));r.setCerradaEn(Instant.now());r.setActualizadoEn(Instant.now());return consultas.ruta(rutas.save(r));}
- @Transactional public Dtos.RutaResponse omitir(long rutaId,long puntoId,String motivo,String username){Ruta r=rutas.findById(rutaId).orElseThrow(()->new NoEncontradoException("La ruta no existe."));if("CERRADA".equals(r.getEstado()))throw new ConflictoNegocioException("No se puede registrar una omisión en una ruta cerrada.");RutaPunto x=rp.findByRutaIdAndPuntoId(rutaId,puntoId).orElseThrow(()->new NoEncontradoException("El punto no forma parte de la ruta."));x.setMotivoOmission(motivo);x.setOmitidoPor(auth.usuario(username));x.setOmitidoEn(Instant.now());rp.save(x);return consultas.ruta(r);}
- @Transactional public Dtos.PuntoResponse crearPunto(Dtos.PuntoCrearRequest q,String username){PuntoAcopio p=new PuntoAcopio();p.setRazonSocial(q.razonSocial());p.setDireccion(q.direccion());p.setZona(q.zona());p.setMaterialHabitual(q.materialHabitual());p.setCreadoPor(auth.usuario(username));return Mapeos.punto(puntos.save(p));}
- @Transactional public Dtos.RutaResponse crearRuta(Dtos.RutaCrearRequest q){Usuario op=usuarios.findById(q.operarioId()).orElseThrow(()->new NoEncontradoException("El operario no existe."));if(rutas.findByFechaAndOperarioId(q.fecha(),op.getId()).isPresent())throw new ConflictoNegocioException("Ya existe una ruta para ese usuario y fecha.");Ruta r=new Ruta();r.setFecha(q.fecha());r.setEstado("ABIERTA");r.setOperario(op);r=rutas.save(r);Set<Long> vistos=new HashSet<>();int secuencia=1;for(Long id:q.puntosIds()){if(!vistos.add(id))throw new IllegalArgumentException("La lista de puntos no puede repetir identificadores.");PuntoAcopio p=puntos.findById(id).orElseThrow(()->new NoEncontradoException("Uno de los puntos no existe."));RutaPunto item=new RutaPunto();item.setRuta(r);item.setPunto(p);item.setSecuencia(secuencia++);rp.save(item);}return consultas.ruta(r);}
+
+@Service
+public class RutaServicio {
+  private final RutaRepositorio rutas;
+  private final RutaPuntoRepositorio rp;
+  private final PesajeRepositorio pesajes;
+  private final PuntoAcopioRepositorio puntos;
+  private final UsuarioRepositorio usuarios;
+  private final AutenticacionServicio auth;
+  private final ConsultaServicio consultas;
+
+  public RutaServicio(
+      RutaRepositorio r,
+      RutaPuntoRepositorio rp,
+      PesajeRepositorio p,
+      PuntoAcopioRepositorio pa,
+      UsuarioRepositorio u,
+      AutenticacionServicio a,
+      ConsultaServicio c) {
+    rutas = r;
+    this.rp = rp;
+    pesajes = p;
+    puntos = pa;
+    usuarios = u;
+    auth = a;
+    consultas = c;
+  }
+
+  @Transactional
+  public Dtos.RutaResponse cerrar(long id, String username) {
+    Ruta r =
+        rutas
+            .findByIdForUpdate(id)
+            .orElseThrow(() -> new NoEncontradoException("La ruta no existe."));
+    if ("CERRADA".equals(r.getEstado()))
+      throw new ConflictoNegocioException("La ruta ya está cerrada.");
+    Set<Long> atendidos = new HashSet<>(pesajes.puntosPesados(id));
+    List<RutaPunto> plan = rp.findByRutaIdOrderBySecuenciaAsc(id);
+    long faltan =
+        plan.stream()
+            .filter(
+                x ->
+                    !atendidos.contains(x.getPunto().getId())
+                        && (x.getMotivoOmission() == null || x.getMotivoOmission().isBlank()))
+            .count();
+    if (faltan > 0)
+      throw new ConflictoNegocioException(
+          "No se puede cerrar la ruta: faltan "
+              + faltan
+              + " puntos sin pesaje ni motivo de omisión.");
+    r.setEstado("CERRADA");
+    r.setCerradaPor(auth.usuario(username));
+    r.setCerradaEn(Instant.now());
+    r.setActualizadoEn(Instant.now());
+    return consultas.ruta(rutas.save(r));
+  }
+
+  @Transactional
+  public Dtos.RutaResponse omitir(long rutaId, long puntoId, String motivo, String username) {
+    Ruta r =
+        rutas.findById(rutaId).orElseThrow(() -> new NoEncontradoException("La ruta no existe."));
+    if ("CERRADA".equals(r.getEstado()))
+      throw new ConflictoNegocioException("No se puede registrar una omisión en una ruta cerrada.");
+    RutaPunto x =
+        rp.findByRutaIdAndPuntoId(rutaId, puntoId)
+            .orElseThrow(() -> new NoEncontradoException("El punto no forma parte de la ruta."));
+    x.setMotivoOmission(motivo);
+    x.setOmitidoPor(auth.usuario(username));
+    x.setOmitidoEn(Instant.now());
+    rp.save(x);
+    return consultas.ruta(r);
+  }
+
+  @Transactional
+  public Dtos.PuntoResponse crearPunto(Dtos.PuntoCrearRequest q, String username) {
+    PuntoAcopio p = new PuntoAcopio();
+    p.setRazonSocial(q.razonSocial());
+    p.setDireccion(q.direccion());
+    p.setZona(q.zona());
+    p.setMaterialHabitual(q.materialHabitual());
+    p.setCreadoPor(auth.usuario(username));
+    return Mapeos.punto(puntos.save(p));
+  }
+
+  @Transactional
+  public Dtos.RutaResponse crearRuta(Dtos.RutaCrearRequest q) {
+    Usuario op =
+        usuarios
+            .findById(q.operarioId())
+            .orElseThrow(() -> new NoEncontradoException("El operario no existe."));
+    if (rutas.findByFechaAndOperarioId(q.fecha(), op.getId()).isPresent())
+      throw new ConflictoNegocioException("Ya existe una ruta para ese usuario y fecha.");
+    Ruta r = new Ruta();
+    r.setFecha(q.fecha());
+    r.setEstado("ABIERTA");
+    r.setOperario(op);
+    r = rutas.save(r);
+    Set<Long> vistos = new HashSet<>();
+    int secuencia = 1;
+    for (Long id : q.puntosIds()) {
+      if (!vistos.add(id))
+        throw new IllegalArgumentException("La lista de puntos no puede repetir identificadores.");
+      PuntoAcopio p =
+          puntos
+              .findById(id)
+              .orElseThrow(() -> new NoEncontradoException("Uno de los puntos no existe."));
+      RutaPunto item = new RutaPunto();
+      item.setRuta(r);
+      item.setPunto(p);
+      item.setSecuencia(secuencia++);
+      rp.save(item);
+    }
+    return consultas.ruta(r);
+  }
 }
