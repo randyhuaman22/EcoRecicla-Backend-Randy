@@ -22,7 +22,7 @@ services:
       DB_URL: ${DB_URL:-jdbc:postgresql://db:5432/ecorecicla}
       DB_USERNAME: ${DB_USERNAME:-ecorecicla}
       DB_PASSWORD: ${DB_PASSWORD:-ecorecicla_dev}
-      JWT_SECRET: ${JWT_SECRET:-RWNvUmVjaWNsYURldi1DbGF2ZS1sb2NhbC0yMDI2IQ==}
+      JWT_SECRET: ${JWT_SECRET:-MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=}
       TZ: ${TZ:-America/Lima}
     ports:
       - "8080:8080"
