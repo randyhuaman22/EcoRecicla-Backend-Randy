@@ -1,6 +1,7 @@
 package pe.upeu.ecorecicla.web.dto;
 
 import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.Digits;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Instant;
@@ -17,8 +18,8 @@ public final class Dtos {
   public record PuntoResponse(long id,String razonSocial,String direccion,String zona,String materialHabitual) {}
   public record RutaPuntoResponse(long id,String razonSocial,String direccion,String zona,String materialHabitual,int secuencia,boolean atendido,String motivoOmission) {}
   public record RutaResponse(long id,LocalDate fecha,String estado,List<RutaPuntoResponse> puntos) {}
-  public record PesajeRequest(@NotNull @DecimalMin(value="0.001", inclusive=true) BigDecimal pesoBruto,
-      @NotNull @DecimalMin(value="0.000", inclusive=true) BigDecimal tara,
+  public record PesajeRequest(@NotNull @DecimalMin(value="0.001", inclusive=true) @Digits(integer=9,fraction=3) BigDecimal pesoBruto,
+      @NotNull @DecimalMin(value="0.000", inclusive=true) @Digits(integer=9,fraction=3) BigDecimal tara,
       @NotBlank @Size(max=60) String material,@Size(max=500) String observacion) {}
   public record AnularRequest(@NotBlank @Size(max=500) String motivo) {}
   public record OmisionRequest(@NotBlank @Size(max=500) String motivo) {}
